@@ -898,8 +898,8 @@ void ISliderControlBase::OnMouseDown(float x, float y, const IMouseMod& mod)
   
   if(GetParam())
   {
-    if(!GetParam()->GetStepped())
-      SnapToMouse(x, y, mDirection, mTrackBounds);
+    //if(!GetParam()->GetStepped())
+      //SnapToMouse(x, y, mDirection, mTrackBounds);
   }
   else
     SnapToMouse(x, y, mDirection, mTrackBounds);
