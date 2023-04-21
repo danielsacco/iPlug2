@@ -2488,6 +2488,13 @@ void IGraphics::FillRect(const IColor& color, const IRECT& bounds, const IBlend*
   PathFill(color, IFillOptions(), pBlend);
 }
 
+void IGraphics::FillRectWithPattern(const IPattern& pattern, const IRECT& bounds, const IBlend* pBlend)
+{
+  PathClear();
+  PathRect(bounds);
+  PathFill(pattern, IFillOptions(), pBlend);
+}
+
 void IGraphics::FillRoundRect(const IColor& color, const IRECT& bounds, float cornerRadius, const IBlend* pBlend)
 {
   PathClear();
