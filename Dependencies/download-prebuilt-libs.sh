@@ -21,7 +21,7 @@ elif [ "$1" == "win" ]; then
   FOLDER=win
 fi
 
-curl https://github.com/iPlug2/iPlug2/releases/download/setup/$ZIP_FILE.zip -L -J -O
+curl https://github.com/iPlug2/iPlug2/releases/download/setup/$ZIP_FILE.zip -L -J -O -k
 
 if [ ! -d Build ]; then 
   mkdir Build
@@ -43,7 +43,7 @@ if [ "$FOLDER" == "mac" ]; then
 fi
 
 if [ "$FOLDER" == "win" ]; then
-  curl https://github.com/iPlug2/iPlug2/releases/download/setup/IPLUG2_DEPS_WIN_FAUST.zip -L -J -O
+  curl https://github.com/iPlug2/iPlug2/releases/download/setup/IPLUG2_DEPS_WIN_FAUST.zip -L -J -O -k
   unzip -o IPLUG2_DEPS_WIN_FAUST.zip
   mkdir Build/win/Faust
   mv Faust/* Build/win/Faust
