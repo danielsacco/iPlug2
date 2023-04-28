@@ -15,3 +15,7 @@
 #ifndef VST3_CC_UNITNAME
   #define VST3_CC_UNITNAME "MIDI CCs"
 #endif
+
+#ifndef VST3_PRESET_LIST
+  #define VST3_PRESET_LIST
+#endif
