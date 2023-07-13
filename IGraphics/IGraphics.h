@@ -273,6 +273,8 @@ public:
    * @param pBlend Optional blend method */
   virtual void FillRect(const IColor& color, const IRECT& bounds, const IBlend* pBlend = 0);
 
+  void FillRectWithPattern(const IPattern& pattern, const IRECT& bounds, const IBlend* pBlend);
+
   /** Fill a rounded rectangle with a color
    * @param color The color to fill the shape with
    * @param bounds The rectangular region to fill the shape in
