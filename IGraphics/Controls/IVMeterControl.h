@@ -287,7 +287,7 @@ public:
     IVMeterControl<MAXNC>::mHighRangeDB = maxRange;
   }
   
-  void DrawTrackHandle(IGraphics& g, const IRECT& r, int chIdx, bool aboveBaseValue) override
+  virtual void DrawTrackHandle(IGraphics& g, const IRECT& r, int chIdx, bool aboveBaseValue) override
   {
     /* NO-OP, TODO: could draw peak hold */
   }
