@@ -96,7 +96,8 @@
 
        for (auto c = d.chanOffset; c < (d.chanOffset + d.nChans); c++)
        {
-         CalculatePoints(c, d.vals[c].data(), (mFFTSize / 2) + 1);
+         //CalculatePoints(c, d.vals[c].data(), (mFFTSize / 2) + 1);
+         CalculatePointsLinearFrequency(c, d.vals[c].data(), (mFFTSize / 2) + 1);
        }
 
        SetDirty(false);
@@ -132,6 +133,37 @@
    std::vector<IColor> mChannelColors;
    int mFFTSize = 1024;
 
+   void CalculatePointsLinearFrequency(int ch, const float* powerSpectrum, int size)
+   {
+     mXPoints[ch].reserve(size);
+     mXPoints[ch].clear();
+     mYPoints[ch].reserve(size);
+     mYPoints[ch].clear();
+
+     for(int bin = 0; bin < size; bin++)
+     {
+       float power = powerSpectrum[bin];
+       
+       // Obtener posicion lineal del bin
+       float xPosition = LinearBinPosition(bin, size);
+       
+       // Calcular log de power y ubicar coordenada Y dentro de los limites del componente.
+       float yNorm = CalcYNorm(power);
+       float yPosition = 1.0 - (YCalc(yNorm) / mWidgetBounds.H());
+       
+       mXPoints[ch].push_back(xPosition);
+       mYPoints[ch].push_back(yPosition);
+       
+       
+       //mPoints[ch].push_back(IVec2{xPosition, yPosition});
+       //if(power > max) max = power;
+       //if(power < min) min = power;
+     }
+     
+     // Just for debugging purposes
+     //mPoints[ch].push_back(IVec2{0.1f, 0.2f});
+   }
+   
    void CalculatePoints(int ch, const float* powerSpectrum, int size)
    {
      mXPoints[ch].reserve(size);
@@ -242,6 +274,17 @@
    float CalcYNorm(float y) const { return (std::logf(y) - mLogYLo) / (mLogYHi - mLogYLo); }
    int NPoints(int ch) const { return static_cast<int>(mXPoints[ch].size()); }
 
+   
+   float LinearBinPosition(int bin, int size) const {
+     float binAsFloat = static_cast<float>(bin);
+     float sizeAsFloat = static_cast<float>(size);
+     float xNorm = binAsFloat/sizeAsFloat;
+     return xNorm;
+     //return mWidgetBounds.L + (mWidgetBounds.W() * xNorm);
+   }
+   int NumberOfPoints(int ch) const { return static_cast<int>(mPoints[ch].size()); }
+
+   
    float mOptimiseX = 1.f;
    float mSmoothX = 1.f;
 
@@ -252,6 +295,9 @@
 
    std::array<std::vector<float>, MAXNC> mXPoints;
    std::array<std::vector<float>, MAXNC> mYPoints;
+   
+   std::array<std::vector<IVec2>, MAXNC> mPoints;
+   
  };
 
  END_IGRAPHICS_NAMESPACE
