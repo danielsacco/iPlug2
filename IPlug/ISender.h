@@ -71,6 +71,9 @@ public:
   {
     mQueue.Push(d);
   }
+  
+  /** This is called on the main thread and can be used to transform the data, e.g. take an FFT. */
+  virtual void PrepareDataForUI(ISenderData<MAXNC, T>& d) { /* NO-OP*/ }
 
   /** Pops elements off the queue and sends messages to controls.
    *  This must be called on the main thread - typically in MyPlugin::OnIdle() */
@@ -80,6 +83,7 @@ public:
     {
       ISenderData<MAXNC, T> d;
       mQueue.Pop(d);
+      PrepareDataForUI(d);
       assert(d.ctrlTag != kNoTag && "You must supply a control tag");
       dlg.SendControlMsgFromDelegate(d.ctrlTag, kUpdateMessage, sizeof(ISenderData<MAXNC, T>), (void*) &d);
     }
@@ -275,7 +279,7 @@ public:
     std::fill(mPeakHoldCounters.begin(), mPeakHoldCounters.end(), mPeakHoldTime);
   }
   
-  /** Queue peaks from sample buffers into the sender This can be called on the realtime audio thread.
+  /** Queue peaks from sample buffers into the sender. This can be called on the realtime audio thread.
    @param inputs the sample buffers to analyze
    @param nFrames the number of sample frames in the input buffers
    @param ctrlTag a control tag to indicate which control to send the buffers to. Note: if you don't supply the control tag here, you must use TransmitDataToControlsWithTags() and specify one or more tags there
@@ -422,10 +426,21 @@ template <int MAXNC = 1, int QUEUE_SIZE = 64, int MAXBUF = 128>
 class IBufferSender : public ISender<MAXNC, QUEUE_SIZE, std::array<float, MAXBUF>>
 {
 public:
+  using TDataPacket = std::array<float, MAXBUF>;
+  using TSender = ISender<MAXNC, QUEUE_SIZE, TDataPacket>;
+  
   IBufferSender(double minThresholdDb = -90., int bufferSize = MAXBUF)
-  : ISender<MAXNC, QUEUE_SIZE, std::array<float, MAXBUF>>()
-  , mThreshold(static_cast<float>(DBToAmp(minThresholdDb)))
+  : TSender()
   {
+    if (minThresholdDb == -std::numeric_limits<double>::infinity())
+    {
+     mThreshold = -1.0f;
+    }
+    else
+    {
+     mThreshold = static_cast<float>(DBToAmp(minThresholdDb));
+    }
+    
     SetBufferSize(bufferSize);
   }
 
@@ -453,7 +468,7 @@ public:
           mBuffer.ctrlTag = ctrlTag;
           mBuffer.nChans = nChans;
           mBuffer.chanOffset = chanOffset;
-          ISender<MAXNC, QUEUE_SIZE, std::array<float, MAXBUF>>::PushData(mBuffer);
+          TSender::PushData(mBuffer);
         }
 
         mPreviousSum = sum;
@@ -483,12 +498,13 @@ public:
   int GetBufferSize() const { return mBufferSize; }
   
 private:
-  ISenderData<MAXNC, std::array<float, MAXBUF>> mBuffer;
+  ISenderData<MAXNC, TDataPacket> mBuffer;
   int mBufCount = 0;
   int mBufferSize = MAXBUF;
   std::array<float, MAXNC> mRunningSum {0.};
   float mPreviousSum = 1.f;
   float mThreshold = 0.01f;
 };
-
+   
+   
 END_IPLUG_NAMESPACE
