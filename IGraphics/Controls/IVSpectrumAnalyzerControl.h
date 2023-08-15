@@ -56,7 +56,10 @@
    void Draw(IGraphics& g) override
    {
      DrawBackground(g, mRECT);
-     DrawWidget(g);
+     //DrawWidget(g);
+     //DrawLines(g);
+     //DrawRectangles(g);
+     DrawFilledLines(g);
      DrawLabel(g);
      
      DrawMarkers(g);
@@ -70,6 +73,83 @@
      // TODO !!!!
    }
    
+   void DrawFilledLines(IGraphics& g)
+   {
+     for (auto c = 0; c < MAXNC; c++)
+     {
+       IColor fillColor = IColor::LinearInterpolateBetween(
+          COLOR_WHITE, mChannelColors[c], 0.6f);
+
+       size_t nLines = mYPoints[c].size();
+
+       // Calculate each line width
+       float lineWidth = mWidgetBounds.W() / nLines;
+
+       float xLo = mWidgetBounds.L;
+       float xHi = xLo + lineWidth;
+
+       for(float yPoint: mYPoints[c])
+       {
+         float y = mWidgetBounds.B - mWidgetBounds.H() * yPoint;
+
+         g.DrawHorizontalLine(mChannelColors[c], y, xLo, xHi);
+         g.FillRect(fillColor, IRECT{xLo, y, xHi + 1.0f, mWidgetBounds.B});
+
+         xLo = xHi;
+         xHi += lineWidth;
+       }
+     }
+   }
+
+   void DrawLines(IGraphics& g)
+   {
+     for (auto c = 0; c < MAXNC; c++)
+     {
+       size_t nLines = mYPoints[c].size();
+
+       // Calculate each line width
+       float lineWidth = mWidgetBounds.W() / nLines;
+
+       float xLo = mWidgetBounds.L;
+       float xHi = xLo + lineWidth;
+
+       for(float yPoint: mYPoints[c])
+       {
+         float y = mWidgetBounds.B - mWidgetBounds.H() * yPoint;
+
+         g.DrawHorizontalLine(mChannelColors[c], y, xLo, xHi);
+         xLo = xHi;
+         xHi += lineWidth;
+       }
+     }
+   }
+
+   void DrawRectangles(IGraphics& g)
+   {
+     for (auto c = 0; c < MAXNC; c++)
+     {
+       size_t nLines = mYPoints[c].size();
+
+       // Calculate each line width
+       float lineWidth = mWidgetBounds.W() / nLines;
+
+       float xLo = mWidgetBounds.L;
+       float xHi = xLo + lineWidth;
+
+       for(float yPoint: mYPoints[c])
+       {
+         float y = mWidgetBounds.B - mWidgetBounds.H() * yPoint;
+
+         //g.DrawRect(mChannelColors[c], IRECT{xLo, y, xHi, mWidgetBounds.B});
+         g.FillRect(mChannelColors[c], IRECT{xLo, y, xHi, mWidgetBounds.B});
+
+         xLo = xHi;
+         xHi += lineWidth;
+       }
+     }
+   }
+
+
    void DrawWidget(IGraphics& g) override
    {
      for (auto c = 0; c < MAXNC; c++)
@@ -97,7 +177,9 @@
        for (auto c = d.chanOffset; c < (d.chanOffset + d.nChans); c++)
        {
          //CalculatePoints(c, d.vals[c].data(), (mFFTSize / 2) + 1);
-         CalculatePointsLinearFrequency(c, d.vals[c].data(), (mFFTSize / 2) + 1);
+         //CalculatePointsLinearFrequency(c, d.vals[c].data(), (mFFTSize / 2) + 1);
+         //CalculateTestLines(c, d.vals[c].data(), (mFFTSize / 2) + 1);
+         CalculateLines(c, d.vals[c].data(), (mFFTSize / 2) + 1);
        }
 
        SetDirty(false);
@@ -133,6 +215,32 @@
    std::vector<IColor> mChannelColors;
    int mFFTSize = 1024;
 
+   void CalculateLines(int ch, const float* powerSpectrum, int size)
+   {
+     mYPoints[ch].reserve(size);
+     mYPoints[ch].clear();
+
+     for(int bin = 0; bin < size; bin++)
+     {
+       float power = powerSpectrum[bin];
+
+       // Calcular log de power y ubicar coordenada Y dentro de los limites del componente.
+       float yNorm = CalcYNorm(power);
+       //float yPosition = 1.0 - (YCalc(yNorm) / mWidgetBounds.H());
+
+       mYPoints[ch].push_back(yNorm);
+     }
+   }
+
+
+   void CalculateTestLines(int ch, const float* powerSpectrum, int size)
+   {
+     mYPoints[ch].clear();
+     mYPoints[ch].push_back(0.1f);
+     mYPoints[ch].push_back(0.8f);
+     mYPoints[ch].push_back(0.5f);
+   }
+
    void CalculatePointsLinearFrequency(int ch, const float* powerSpectrum, int size)
    {
      mXPoints[ch].reserve(size);
@@ -153,15 +261,8 @@
        
        mXPoints[ch].push_back(xPosition);
        mYPoints[ch].push_back(yPosition);
-       
-       
-       //mPoints[ch].push_back(IVec2{xPosition, yPosition});
-       //if(power > max) max = power;
-       //if(power < min) min = power;
      }
      
-     // Just for debugging purposes
-     //mPoints[ch].push_back(IVec2{0.1f, 0.2f});
    }
    
    void CalculatePoints(int ch, const float* powerSpectrum, int size)
@@ -282,7 +383,6 @@
      return xNorm;
      //return mWidgetBounds.L + (mWidgetBounds.W() * xNorm);
    }
-   int NumberOfPoints(int ch) const { return static_cast<int>(mPoints[ch].size()); }
 
    
    float mOptimiseX = 1.f;
@@ -295,9 +395,7 @@
 
    std::array<std::vector<float>, MAXNC> mXPoints;
    std::array<std::vector<float>, MAXNC> mYPoints;
-   
-   std::array<std::vector<IVec2>, MAXNC> mPoints;
-   
+      
  };
 
  END_IGRAPHICS_NAMESPACE
