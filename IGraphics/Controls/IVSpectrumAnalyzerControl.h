@@ -42,7 +42,7 @@
     * @param label A CString to label the control
     * @param style, /see IVStyle */
    IVSpectrumAnalyzerControl(const IRECT& bounds, const char* label = "", const IVStyle& style = DEFAULT_STYLE,
-                             std::initializer_list<IColor> colors = {COLOR_BLACK})
+     std::initializer_list<IColor> colors = {COLOR_BLACK})
    : IControl(bounds)
    , IVectorBase(style)
    , mChannelColors(colors)
@@ -57,7 +57,7 @@
    {
      DrawBackground(g, mRECT);
      //DrawWidget(g);
-     //DrawLines(g);
+     //DrawTopLines(g);
      //DrawRectangles(g);
      DrawFilledLines(g);
      DrawLabel(g);
@@ -70,7 +70,67 @@
 
    void DrawMarkers(IGraphics& g)
    {
-     // TODO !!!!
+     DrawFreqMarkers(g);
+     DrawPowerMarkers(g);
+   }
+   
+   WDL_String GetFrequencyFormatted(const float freq)
+   {
+     WDL_String str;
+     if(freq >= 1000.f)
+     {
+       str.SetFormatted(12, "%i kHz", static_cast<int>(freq/1000.f));
+     }
+     else
+     {
+       str.SetFormatted(12, "%i Hz", static_cast<int>(freq));
+     }
+     
+     return str;
+   }
+   
+   void DrawFreqMarkers(IGraphics& g)
+   {
+     WDL_String measuringString;
+     measuringString.SetFormatted(12, "%i kHz", static_cast<int>(22.5f));
+     
+     IRECT textRect;
+     GetUI()->MeasureText(mStyle.valueText, measuringString.Get(), textRect);
+
+     float candidateFreqs[] = {10.f, 50.f, 100.f, 250.f, 1000.f, 5000.f, 10000.f, 20000.f, 25000.f};
+     std::vector<float> selectedFreqs;
+     
+     selectedFreqs.push_back(mFreqLo);
+     
+     for(float freq: candidateFreqs)
+     {
+       if(freq <= mFreqLo) continue;
+       if(freq >= mFreqHi) break;
+       
+       selectedFreqs.push_back(freq);
+     }
+     
+     selectedFreqs.push_back(mFreqHi);
+     
+     const int numberOfFreqs = static_cast<int>(selectedFreqs.size());
+     
+     IRECT freqTextStrip = mWidgetBounds.GetFromBottom(textRect.H());
+     
+     int column = 0;
+     for(auto freq: selectedFreqs)
+     {
+       // TODO: This prototype spread frequencies linearly, they should be aligned to their
+       // TODO: respective bins taking care of mFreqLo and mFreqHi that may be drawn separately
+       IRECT textBox = freqTextStrip.GetGridCell(0, column++, 1, numberOfFreqs);
+       g.DrawText(DEFAULT_TEXT, GetFrequencyFormatted(freq).Get(), textBox);
+     }
+
+   }
+
+   void DrawPowerMarkers(IGraphics& g)
+   {
+     // TODO:
+     
    }
    
    void DrawFilledLines(IGraphics& g)
@@ -101,7 +161,7 @@
      }
    }
 
-   void DrawLines(IGraphics& g)
+   void DrawTopLines(IGraphics& g)
    {
      for (auto c = 0; c < MAXNC; c++)
      {
@@ -140,7 +200,6 @@
        {
          float y = mWidgetBounds.B - mWidgetBounds.H() * yPoint;
 
-         //g.DrawRect(mChannelColors[c], IRECT{xLo, y, xHi, mWidgetBounds.B});
          g.FillRect(mChannelColors[c], IRECT{xLo, y, xHi, mWidgetBounds.B});
 
          xLo = xHi;
@@ -201,8 +260,16 @@
 
    void SetFreqRange(float freqLo, float freqHi, float sampleRate)
    {
-     mLogXLo = std::logf(freqLo / (sampleRate / 2.f));
-     mLogXHi = std::logf(freqHi / (sampleRate / 2.f));
+     auto nyquist = sampleRate / 2.f;
+     assert(freqHi < nyquist);
+     assert(freqLo >= 0.f);
+     assert(freqHi > freqLo);
+     
+     mFreqLo = freqLo;
+     mFreqHi = freqHi;
+
+     mLogXLo = std::logf(freqLo / nyquist);
+     mLogXHi = std::logf(freqHi / nyquist);
    }
 
    void SetDBRange(float dbLo, float dbHi)
@@ -231,7 +298,6 @@
        mYPoints[ch].push_back(yNorm);
      }
    }
-
 
    void CalculateTestLines(int ch, const float* powerSpectrum, int size)
    {
@@ -392,6 +458,9 @@
    float mLogXHi;
    float mLogYLo;
    float mLogYHi;
+
+   float mFreqLo = 0.f;
+   float mFreqHi = 20000.f;
 
    std::array<std::vector<float>, MAXNC> mXPoints;
    std::array<std::vector<float>, MAXNC> mYPoints;
